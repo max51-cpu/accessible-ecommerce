@@ -1,6 +1,8 @@
 from flask import render_template, request, redirect, url_for, flash, session, jsonify
 from app import app, db
 from models import User, Category, Product, CartItem, Order, OrderItem
+from forms import LoginForm, SignupForm
+from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import voice_commands
 import logging
@@ -115,21 +117,36 @@ def product_detail(product_id):
 # Cart management
 @app.route('/cart')
 def view_cart():
-    # For simplicity, using session-based cart instead of user authentication
-    cart = session.get('cart', [])
     cart_items = []
     total = 0
     
-    for item in cart:
-        product = Product.query.get(item['product_id'])
-        if product:
-            subtotal = product.price * item['quantity']
+    # Handle cart differently based on authentication status
+    if current_user.is_authenticated:
+        # Get cart items from database for authenticated users
+        db_cart_items = CartItem.query.filter_by(user_id=current_user.id).all()
+        
+        for item in db_cart_items:
+            subtotal = item.product.price * item.quantity
             cart_items.append({
-                'product': product,
-                'quantity': item['quantity'],
+                'product': item.product,
+                'quantity': item.quantity,
                 'subtotal': subtotal
             })
             total += subtotal
+    else:
+        # Use session cart for non-authenticated users
+        cart = session.get('cart', [])
+        
+        for item in cart:
+            product = Product.query.get(item['product_id'])
+            if product:
+                subtotal = product.price * item['quantity']
+                cart_items.append({
+                    'product': product,
+                    'quantity': item['quantity'],
+                    'subtotal': subtotal
+                })
+                total += subtotal
     
     return render_template('cart.html', cart_items=cart_items, total=total)
 
@@ -144,23 +161,46 @@ def add_to_cart():
     
     product = Product.query.get_or_404(product_id)
     
-    if 'cart' not in session:
-        session['cart'] = []
+    if current_user.is_authenticated:
+        # Add to database cart for authenticated users
+        cart_item = CartItem.query.filter_by(
+            user_id=current_user.id, 
+            product_id=product_id
+        ).first()
+        
+        if cart_item:
+            # Update existing cart item
+            cart_item.quantity += quantity
+        else:
+            # Create new cart item
+            cart_item = CartItem(
+                user_id=current_user.id,
+                product_id=product_id,
+                quantity=quantity
+            )
+            db.session.add(cart_item)
+        
+        db.session.commit()
+    else:
+        # Use session cart for anonymous users
+        if 'cart' not in session:
+            session['cart'] = []
+        
+        cart = session['cart']
+        
+        # Check if product already in cart
+        found = False
+        for item in cart:
+            if item['product_id'] == product_id:
+                item['quantity'] += quantity
+                found = True
+                break
+        
+        if not found:
+            cart.append({'product_id': product_id, 'quantity': quantity})
+        
+        session['cart'] = cart
     
-    cart = session['cart']
-    
-    # Check if product already in cart
-    found = False
-    for item in cart:
-        if item['product_id'] == product_id:
-            item['quantity'] += quantity
-            found = True
-            break
-    
-    if not found:
-        cart.append({'product_id': product_id, 'quantity': quantity})
-    
-    session['cart'] = cart
     flash(f'{product.name} added to your cart!', 'success')
     return redirect(url_for('view_cart'))
 
@@ -173,106 +213,181 @@ def update_cart():
         flash('Invalid product', 'error')
         return redirect(url_for('view_cart'))
     
-    cart = session.get('cart', [])
-    
-    for item in cart:
-        if item['product_id'] == product_id:
+    if current_user.is_authenticated:
+        # Update database cart for authenticated users
+        cart_item = CartItem.query.filter_by(
+            user_id=current_user.id, 
+            product_id=product_id
+        ).first()
+        
+        if cart_item:
             if quantity > 0:
-                item['quantity'] = quantity
+                cart_item.quantity = quantity
+                db.session.commit()
             else:
-                cart.remove(item)
-            break
+                db.session.delete(cart_item)
+                db.session.commit()
+    else:
+        # Use session cart for anonymous users
+        cart = session.get('cart', [])
+        
+        for item in cart:
+            if item['product_id'] == product_id:
+                if quantity > 0:
+                    item['quantity'] = quantity
+                else:
+                    cart.remove(item)
+                break
+        
+        session['cart'] = cart
     
-    session['cart'] = cart
     flash('Cart updated successfully', 'success')
     return redirect(url_for('view_cart'))
 
 @app.route('/remove_from_cart/<int:product_id>')
 def remove_from_cart(product_id):
-    cart = session.get('cart', [])
+    if current_user.is_authenticated:
+        # Remove from database cart for authenticated users
+        cart_item = CartItem.query.filter_by(
+            user_id=current_user.id, 
+            product_id=product_id
+        ).first()
+        
+        if cart_item:
+            db.session.delete(cart_item)
+            db.session.commit()
+    else:
+        # Use session cart for anonymous users
+        cart = session.get('cart', [])
+        
+        for item in cart:
+            if item['product_id'] == product_id:
+                cart.remove(item)
+                break
+        
+        session['cart'] = cart
     
-    for item in cart:
-        if item['product_id'] == product_id:
-            cart.remove(item)
-            break
-    
-    session['cart'] = cart
     flash('Item removed from cart', 'success')
     return redirect(url_for('view_cart'))
 
 # Checkout process
 @app.route('/checkout')
 def checkout():
-    cart = session.get('cart', [])
-    if not cart:
-        flash('Your cart is empty', 'info')
-        return redirect(url_for('products'))
-    
     cart_items = []
     total = 0
     
-    for item in cart:
-        product = Product.query.get(item['product_id'])
-        if product:
-            subtotal = product.price * item['quantity']
+    if current_user.is_authenticated:
+        # Get cart items from database for authenticated users
+        db_cart_items = CartItem.query.filter_by(user_id=current_user.id).all()
+        
+        if not db_cart_items:
+            flash('Your cart is empty', 'info')
+            return redirect(url_for('products'))
+        
+        for item in db_cart_items:
+            subtotal = item.product.price * item.quantity
             cart_items.append({
-                'product': product,
-                'quantity': item['quantity'],
+                'product': item.product,
+                'quantity': item.quantity,
                 'subtotal': subtotal
             })
             total += subtotal
+    else:
+        # Use session cart for anonymous users
+        cart = session.get('cart', [])
+        if not cart:
+            flash('Your cart is empty', 'info')
+            return redirect(url_for('products'))
+        
+        for item in cart:
+            product = Product.query.get(item['product_id'])
+            if product:
+                subtotal = product.price * item['quantity']
+                cart_items.append({
+                    'product': product,
+                    'quantity': item['quantity'],
+                    'subtotal': subtotal
+                })
+                total += subtotal
     
     return render_template('checkout.html', cart_items=cart_items, total=total)
 
 @app.route('/process_order', methods=['POST'])
 def process_order():
-    cart = session.get('cart', [])
-    if not cart:
-        flash('Your cart is empty', 'info')
-        return redirect(url_for('products'))
-    
     # Processing order - in a real app, this would handle payment processing
     name = request.form.get('name')
     email = request.form.get('email')
     address = request.form.get('address')
     
-    # Calculate total
+    cart_items = []
     total = 0
-    for item in cart:
-        product = Product.query.get(item['product_id'])
-        if product:
-            total += product.price * item['quantity']
     
-    # For demo purposes, create a user if not exists
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        user = User(username=name, email=email, password_hash="temporary")
-        db.session.add(user)
-        db.session.flush()
+    if current_user.is_authenticated:
+        # Get cart items from database for authenticated users
+        db_cart_items = CartItem.query.filter_by(user_id=current_user.id).all()
+        
+        if not db_cart_items:
+            flash('Your cart is empty', 'info')
+            return redirect(url_for('products'))
+        
+        for item in db_cart_items:
+            subtotal = item.product.price * item.quantity
+            cart_items.append({
+                'product': item.product,
+                'quantity': item.quantity
+            })
+            total += subtotal
+        
+        user_id = current_user.id
+    else:
+        # Use session cart for anonymous users
+        cart = session.get('cart', [])
+        if not cart:
+            flash('Your cart is empty', 'info')
+            return redirect(url_for('products'))
+        
+        for item in cart:
+            product = Product.query.get(item['product_id'])
+            if product:
+                cart_items.append({
+                    'product': product,
+                    'quantity': item['quantity']
+                })
+                total += product.price * item['quantity']
+        
+        # For demo purposes, create a user if not exists
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(username=name, email=email)
+            user.set_password('temporary')  # Set a temporary password for guest users
+            db.session.add(user)
+            db.session.flush()
+        user_id = user.id
     
     # Create order
-    order = Order(user_id=user.id, total_amount=total, shipping_address=address)
+    order = Order(user_id=user_id, total_amount=total, shipping_address=address)
     db.session.add(order)
     db.session.flush()
     
     # Add order items
-    for item in cart:
-        product = Product.query.get(item['product_id'])
-        if product:
-            order_item = OrderItem(
-                order_id=order.id,
-                product_id=product.id,
-                product_name=product.name,
-                quantity=item['quantity'],
-                price=product.price
-            )
-            db.session.add(order_item)
-    
-    db.session.commit()
+    for item in cart_items:
+        product = item['product']
+        order_item = OrderItem(
+            order_id=order.id,
+            product_id=product.id,
+            product_name=product.name,
+            quantity=item['quantity'],
+            price=product.price
+        )
+        db.session.add(order_item)
     
     # Clear the cart
-    session.pop('cart', None)
+    if current_user.is_authenticated:
+        CartItem.query.filter_by(user_id=current_user.id).delete()
+    else:
+        session.pop('cart', None)
     
+    db.session.commit()
     flash('Your order has been placed successfully!', 'success')
     return redirect(url_for('confirmation', order_id=order.id))
 
@@ -290,6 +405,52 @@ def process_voice_command():
     
     result = voice_commands.process_command(command_text)
     return jsonify(result)
+
+# Authentication routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember_me.data)
+            flash('You have been logged in successfully!', 'success')
+            next_page = request.args.get('next', '')
+            if next_page and next_page.startswith('/'):
+                return redirect(next_page)
+            return redirect(url_for('index'))
+        else:
+            flash('Login failed. Please check your username and password.', 'danger')
+    
+    return render_template('login.html', form=form)
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = SignupForm()
+    if form.validate_on_submit():
+        user = User(username=form.username.data, email=form.email.data)
+        user.set_password(form.password.data)
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        flash('Your account has been created! You can now log in.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('signup.html', form=form)
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('index'))
 
 # Accessibility settings
 @app.route('/set_accessibility', methods=['POST'])
