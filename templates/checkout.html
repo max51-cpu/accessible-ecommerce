@@ -105,7 +105,7 @@
                                 <h3 class="h5 mb-3">Payment Information</h3>
                                 <p class="text-info">
                                     <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
-                                    This is a demo checkout. No real payment will be processed.
+                                    You'll be redirected to Stripe's secure payment page to complete your purchase.
                                 </p>
                                 
                                 <div class="d-grid gap-2 d-md-flex mt-4">
@@ -113,10 +113,20 @@
                                         <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>
                                         Back to Cart
                                     </a>
-                                    <button type="submit" class="btn btn-success ms-auto">
+                                    <button type="submit" class="btn btn-primary ms-auto">
                                         <i class="fas fa-check-circle me-2" aria-hidden="true"></i>
-                                        Place Order
+                                        Continue to Payment
                                     </button>
+                                </div>
+                                
+                                <div class="mt-3 text-center">
+                                    <p>Or pay with Stripe directly:</p>
+                                    <form action="{{ url_for('create_checkout_session') }}" method="POST">
+                                        <button type="submit" class="btn btn-success" aria-label="Checkout with Stripe">
+                                            <i class="fas fa-credit-card me-2" aria-hidden="true"></i>
+                                            Checkout with Stripe
+                                        </button>
+                                    </form>
                                 </div>
                             </form>
                         </div>

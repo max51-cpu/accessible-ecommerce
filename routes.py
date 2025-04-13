@@ -5,6 +5,8 @@ from forms import LoginForm, SignupForm
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import voice_commands
+import stripe_integration
+import os
 import logging
 
 # Sample products and categories for initial database setup
@@ -312,6 +314,66 @@ def checkout():
     
     return render_template('checkout.html', cart_items=cart_items, total=total)
 
+@app.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
+    """
+    Create a Stripe checkout session and redirect to Stripe's hosted checkout page
+    """
+    # Prepare items for Stripe
+    stripe_items = []
+    
+    if current_user.is_authenticated:
+        # Get cart items from database for authenticated users
+        db_cart_items = CartItem.query.filter_by(user_id=current_user.id).all()
+        
+        if not db_cart_items:
+            flash('Your cart is empty', 'info')
+            return redirect(url_for('products'))
+        
+        for item in db_cart_items:
+            stripe_items.append({
+                'name': item.product.name,
+                'description': item.product.description,
+                'amount': item.product.price,
+                'quantity': item.quantity
+            })
+    else:
+        # Use session cart for anonymous users
+        cart = session.get('cart', [])
+        if not cart:
+            flash('Your cart is empty', 'info')
+            return redirect(url_for('products'))
+        
+        for item in cart:
+            product = Product.query.get(item['product_id'])
+            if product:
+                stripe_items.append({
+                    'name': product.name,
+                    'description': product.description,
+                    'amount': product.price,
+                    'quantity': item['quantity']
+                })
+    
+    # Get domain for success and cancel URLs
+    domain_url = request.host_url.rstrip('/')
+    
+    # Create Stripe checkout session
+    checkout_session = stripe_integration.create_checkout_session(
+        items=stripe_items,
+        success_url=f"{domain_url}{url_for('payment_success')}?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{domain_url}{url_for('payment_cancel')}"
+    )
+    
+    if checkout_session is None:
+        flash('An error occurred while processing your payment. Please try again.', 'danger')
+        return redirect(url_for('checkout'))
+    
+    # Store session ID in user's session for later reference
+    session['stripe_checkout_id'] = checkout_session.id
+    
+    # Redirect to Stripe's hosted checkout page
+    return redirect(checkout_session.url)
+
 @app.route('/process_order', methods=['POST'])
 def process_order():
     # Processing order - in a real app, this would handle payment processing
@@ -395,6 +457,112 @@ def process_order():
 def confirmation(order_id):
     order = Order.query.get_or_404(order_id)
     return render_template('confirmation.html', order=order)
+
+@app.route('/payment-success')
+def payment_success():
+    """Handle successful payment from Stripe"""
+    session_id = request.args.get('session_id')
+    
+    if not session_id:
+        flash('Payment session not found.', 'error')
+        return redirect(url_for('checkout'))
+    
+    # Retrieve the session from Stripe
+    checkout_session = stripe_integration.retrieve_session(session_id)
+    
+    if checkout_session is None or checkout_session.payment_status != 'paid':
+        flash('Payment verification failed. Please try again or contact support.', 'error')
+        return redirect(url_for('checkout'))
+    
+    # Process the order based on the successful payment
+    cart_items = []
+    total = 0
+    address = checkout_session.customer_details.address.line1
+    
+    if current_user.is_authenticated:
+        # Get cart items from database for authenticated users
+        db_cart_items = CartItem.query.filter_by(user_id=current_user.id).all()
+        
+        for item in db_cart_items:
+            subtotal = item.product.price * item.quantity
+            cart_items.append({
+                'product': item.product,
+                'quantity': item.quantity
+            })
+            total += subtotal
+        
+        user_id = current_user.id
+    else:
+        # Use session cart for anonymous users
+        cart = session.get('cart', [])
+        if not cart:
+            flash('Your cart is empty', 'info')
+            return redirect(url_for('products'))
+        
+        for item in cart:
+            product = Product.query.get(item['product_id'])
+            if product:
+                cart_items.append({
+                    'product': product,
+                    'quantity': item['quantity']
+                })
+                total += product.price * item['quantity']
+        
+        # Create a user with email from Stripe checkout session
+        email = checkout_session.customer_details.email
+        name = checkout_session.customer_details.name or email.split('@')[0]
+        
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(username=name, email=email)
+            user.set_password('temporary')  # Set a temporary password for guest users
+            db.session.add(user)
+            db.session.flush()
+        user_id = user.id
+    
+    # Create order with payment information
+    order = Order(
+        user_id=user_id, 
+        total_amount=total, 
+        shipping_address=address,
+        status='Paid'  # Mark as paid since payment was successful
+    )
+    db.session.add(order)
+    db.session.flush()
+    
+    # Add order items
+    for item in cart_items:
+        product = item['product']
+        order_item = OrderItem(
+            order_id=order.id,
+            product_id=product.id,
+            product_name=product.name,
+            quantity=item['quantity'],
+            price=product.price
+        )
+        db.session.add(order_item)
+    
+    # Clear the cart
+    if current_user.is_authenticated:
+        CartItem.query.filter_by(user_id=current_user.id).delete()
+    else:
+        session.pop('cart', None)
+    
+    # Remove checkout session ID from session
+    session.pop('stripe_checkout_id', None)
+    
+    db.session.commit()
+    flash('Your payment was successful! Your order has been placed.', 'success')
+    return redirect(url_for('confirmation', order_id=order.id))
+
+@app.route('/payment-cancel')
+def payment_cancel():
+    """Handle canceled payment from Stripe"""
+    # Remove checkout session ID from session
+    session.pop('stripe_checkout_id', None)
+    
+    flash('Your payment was canceled. Please try again or contact support if you need assistance.', 'warning')
+    return redirect(url_for('checkout'))
 
 # Voice command endpoints
 @app.route('/process_voice_command', methods=['POST'])
