@@ -1,0 +1,122 @@
+{% extends "layout.html" %}
+
+{% block title %}Login - Accessible eCommerce{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="h3 mb-0">Login</h1>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    <div class="alert alert-info" role="alert">
+                        {% for message in messages %}
+                        <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('login') }}" id="login-form">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control", id="username", placeholder="Enter username") }}
+                            {% if form.username.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.username.errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control", id="password", placeholder="Enter password") }}
+                            {% if form.password.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.password.errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            {{ form.remember_me(class="form-check-input", id="remember-me") }}
+                            {{ form.remember_me.label(class="form-check-label") }}
+                        </div>
+                        
+                        <div class="d-grid">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                    
+                    <div class="mt-3 text-center">
+                        <p>Don't have an account? <a href="{{ url_for('signup') }}" class="link-info">Sign up here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="voice-feedback" class="sr-only" aria-live="assertive"></div>
+
+<script>
+// JavaScript for voice feedback when user is typing
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle input fields voice feedback
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const voiceFeedback = document.getElementById('voice-feedback');
+    
+    // Function to speak text using the Web Speech API
+    function speakText(text) {
+        // Check if speech synthesis is supported
+        if ('speechSynthesis' in window) {
+            // Create a new speech synthesis utterance
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Stop any current speaking
+            window.speechSynthesis.cancel();
+            
+            // Speak the text
+            window.speechSynthesis.speak(utterance);
+            
+            // Update the voice feedback element for screen readers
+            voiceFeedback.textContent = text;
+        }
+    }
+    
+    // Add input event listeners to speak what the user is typing
+    usernameInput.addEventListener('input', function() {
+        if (this.value) {
+            speakText('Username: ' + this.value);
+        }
+    });
+    
+    passwordInput.addEventListener('input', function() {
+        if (this.value) {
+            // For security, don't speak the actual password
+            speakText('Password: ' + '*'.repeat(this.value.length));
+        }
+    });
+    
+    // Focus events to announce field purpose
+    usernameInput.addEventListener('focus', function() {
+        speakText('Username field. Please enter your username.');
+    });
+    
+    passwordInput.addEventListener('focus', function() {
+        speakText('Password field. Please enter your password.');
+    });
+});
+</script>
+{% endblock %}
