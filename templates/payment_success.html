@@ -45,7 +45,22 @@
         // Announce success message to screen readers
         setTimeout(function() {
             announceToScreenReader("Payment successful! Thank you for your purchase. We're processing your order now.");
+            
+            // After a short delay, announce navigation shortcuts
+            setTimeout(function() {
+                announceToScreenReader("Press Alt+1 to return to home page. Press Alt+2 to continue shopping.");
+            }, 3000);
         }, 1000);
+        
+        // Add keyboard shortcuts specific to this page
+        document.addEventListener('keydown', function(e) {
+            // Alt+2 for continue shopping
+            if (e.altKey && e.key === '2') {
+                e.preventDefault();
+                window.location.href = "{{ url_for('products') }}";
+                announceToScreenReader('Navigating to products page to continue shopping');
+            }
+        });
     });
 </script>
 {% endblock %}

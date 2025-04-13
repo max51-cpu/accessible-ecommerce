@@ -230,6 +230,19 @@ function setupKeyboardShortcuts() {
             e.preventDefault();
             togglePageIndicator();
         }
+        
+        // Alt+K: Announce all keyboard shortcuts
+        if (e.altKey && e.key === 'k') {
+            e.preventDefault();
+            // Find and click the keyboard shortcuts button
+            const shortcutButton = document.getElementById('keyboard-shortcuts-button');
+            if (shortcutButton) {
+                shortcutButton.click();
+            } else {
+                // If button doesn't exist yet, call the function directly
+                announceKeyboardShortcuts();
+            }
+        }
     });
 }
 
@@ -447,7 +460,114 @@ function announceCurrentPage() {
         
         // Also add a visual indicator of current page
         updateCurrentPageIndicator();
+        
+        // Announce keyboard shortcuts after a short delay
+        setTimeout(() => {
+            announceKeyboardShortcuts();
+        }, 2000);
     }, 800);
+}
+
+/**
+ * Announce available keyboard shortcuts for the current page
+ */
+function announceKeyboardShortcuts() {
+    // Get current page path
+    const path = window.location.pathname;
+    
+    // Common shortcuts for all pages
+    let shortcuts = [
+        "Press Alt+1 for Home page",
+        "Press Alt+2 for Products page",
+        "Press Alt+3 for Cart page",
+        "Press Alt+4 for Checkout page",
+        "Press Alt+A to open Accessibility panel",
+        "Press Alt+H to toggle High contrast mode",
+        "Press Alt+T to change Text size",
+        "Press Alt+V to activate Voice commands",
+        "Press Alt+S to focus Search box",
+        "Press Alt+P to toggle Page indicator"
+    ];
+    
+    // Add page-specific shortcuts
+    if (path.includes('/product/')) {
+        shortcuts.push("Press Alt+C to Add to cart");
+    } else if (path.includes('/cart')) {
+        shortcuts.push("Press Alt+U to Update cart");
+        shortcuts.push("Press Alt+4 to Proceed to checkout");
+    } else if (path.includes('/checkout')) {
+        shortcuts.push("Press Alt+Shift+S to Checkout with Stripe");
+        shortcuts.push("Press Tab to move between form fields");
+        shortcuts.push("Press Shift+Tab to move backwards");
+        shortcuts.push("Press Enter to submit forms");
+    } else if (path.includes('/login') || path.includes('/signup')) {
+        shortcuts.push("Press Tab to move between form fields");
+        shortcuts.push("Press Enter to submit the form");
+    }
+    
+    // Create a keyboard shortcut help button if it doesn't exist
+    let shortcutButton = document.getElementById('keyboard-shortcuts-button');
+    if (!shortcutButton) {
+        shortcutButton = document.createElement('button');
+        shortcutButton.id = 'keyboard-shortcuts-button';
+        shortcutButton.className = 'btn btn-info keyboard-shortcuts-button';
+        shortcutButton.setAttribute('aria-label', 'Show keyboard shortcuts');
+        shortcutButton.innerHTML = '<i class="fas fa-keyboard"></i> <span class="d-none d-md-inline">Keyboard Shortcuts</span>';
+        
+        shortcutButton.addEventListener('click', function() {
+            const shortcutsList = shortcuts.join(". ");
+            announceToScreenReader("Available keyboard shortcuts: " + shortcutsList);
+            
+            // Also show visual modal for sighted users
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.id = 'keyboardShortcutsModal';
+            modal.setAttribute('tabindex', '-1');
+            modal.setAttribute('aria-labelledby', 'keyboardShortcutsModalLabel');
+            modal.setAttribute('aria-hidden', 'true');
+            
+            const modalContent = `
+                <div class="modal-dialog">
+                    <div class="modal-content bg-dark">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="keyboardShortcutsModalLabel">Keyboard Shortcuts</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <ul class="list-group list-group-flush bg-dark">
+                                ${shortcuts.map(shortcut => `<li class="list-group-item bg-dark">${shortcut}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            modal.innerHTML = modalContent;
+            document.body.appendChild(modal);
+            
+            // Show modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            // Remove modal from DOM when hidden
+            modal.addEventListener('hidden.bs.modal', function() {
+                document.body.removeChild(modal);
+            });
+        });
+        
+        // Add to page
+        const mainContent = document.querySelector('main') || document.body;
+        mainContent.appendChild(shortcutButton);
+    }
+    
+    // Announce first few shortcuts
+    const shortcutsToAnnounce = shortcuts.slice(0, 3);
+    shortcutsToAnnounce.push(`Press Alt+K to hear all ${shortcuts.length} keyboard shortcuts.`);
+    
+    announceToScreenReader("Available keyboard shortcuts: " + shortcutsToAnnounce.join(". "));
 }
 
 /**

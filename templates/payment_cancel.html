@@ -45,7 +45,29 @@
         // Announce cancellation message to screen readers
         setTimeout(function() {
             announceToScreenReader("Payment canceled. No charges have been made to your account. You can try again or contact support if you need assistance.");
+            
+            // After a short delay, announce navigation shortcuts
+            setTimeout(function() {
+                announceToScreenReader("Press Alt+4 to return to checkout. Press Alt+3 to view your cart.");
+            }, 3000);
         }, 1000);
+        
+        // Add keyboard shortcuts specific to this page
+        document.addEventListener('keydown', function(e) {
+            // Alt+4 to return to checkout
+            if (e.altKey && e.key === '4') {
+                e.preventDefault();
+                window.location.href = "{{ url_for('checkout') }}";
+                announceToScreenReader('Returning to checkout page');
+            }
+            
+            // Alt+3 to view cart
+            if (e.altKey && e.key === '3') {
+                e.preventDefault();
+                window.location.href = "{{ url_for('view_cart') }}";
+                announceToScreenReader('Navigating to cart page');
+            }
+        });
     });
 </script>
 {% endblock %}
