@@ -118,17 +118,31 @@
                                         Continue to Payment
                                     </button>
                                 </div>
-                                
-                                <div class="mt-3 text-center">
-                                    <p>Or pay with Stripe directly:</p>
-                                    <form action="{{ url_for('create_checkout_session') }}" method="POST">
-                                        <button type="submit" class="btn btn-success" aria-label="Checkout with Stripe">
-                                            <i class="fas fa-credit-card me-2" aria-hidden="true"></i>
-                                            Checkout with Stripe
-                                        </button>
-                                    </form>
-                                </div>
                             </form>
+                            
+                            <div class="mt-4 text-center">
+                                <div class="card bg-dark border-success">
+                                    <div class="card-header bg-success bg-opacity-25">
+                                        <h3 class="h5 mb-0">Secure Stripe Checkout</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>
+                                            <i class="fas fa-lock me-2" aria-hidden="true"></i>
+                                            Pay securely through Stripe's accessible payment platform
+                                        </p>
+                                        <form action="{{ url_for('create_checkout_session') }}" method="POST">
+                                            <button type="submit" class="btn btn-success" aria-label="Checkout with Stripe">
+                                                <i class="fas fa-credit-card me-2" aria-hidden="true"></i>
+                                                Checkout with Stripe
+                                            </button>
+                                        </form>
+                                        <div class="mt-2 small text-muted">
+                                            <span class="d-block">Keyboard shortcut: <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></span>
+                                            <span class="d-block">Voice command: "Pay now" or "Checkout with Stripe"</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

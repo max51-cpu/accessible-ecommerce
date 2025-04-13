@@ -154,7 +154,19 @@ function setupKeyboardShortcuts() {
         if (e.altKey && e.key === '4') {
             e.preventDefault();
             window.location.href = '/checkout';
-            announceToScreenReader('Navigating to checkout');
+            announceToScreenReader('Navigating to checkout page');
+        }
+        
+        // Alt+S: Proceed with Stripe payment
+        if (e.altKey && e.key === 's' && e.shiftKey) {
+            e.preventDefault();
+            const stripeButton = document.querySelector('form[action*="create-checkout-session"] button');
+            if (stripeButton) {
+                announceToScreenReader('Proceeding to Stripe payment');
+                stripeButton.click();
+            } else {
+                announceToScreenReader('Stripe payment button not found on this page');
+            }
         }
         
         // Alt+A: Toggle accessibility panel
