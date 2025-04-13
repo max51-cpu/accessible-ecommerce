@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Accessible e-commerce website for visually impaired users">
+    <title>{% block title %}Accessible E-commerce{% endblock %}</title>
+    
+    <!-- Bootstrap CSS with Replit dark theme -->
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body class="text-{{ accessibility.text_size }} {% if accessibility.high_contrast %}high-contrast{% endif %}">
+    <!-- Skip to content link for keyboard users -->
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+    
+    <!-- Screen reader announcer for dynamic content -->
+    <div id="screen-reader-announcer" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+    
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4" aria-label="Main navigation">
+        <div class="container">
+            <a class="navbar-brand fs-3" href="{{ url_for('index') }}">
+                <i class="fas fa-universal-access" aria-hidden="true"></i>
+                <span>Accessible Shop</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" 
+                    aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link fs-5 {% if request.path == url_for('index') %}active{% endif %}" 
+                           href="{{ url_for('index') }}" aria-current="{% if request.path == url_for('index') %}page{% endif %}">
+                            <i class="fas fa-home" aria-hidden="true"></i>
+                            <span>Home</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fs-5 {% if request.path == url_for('products') %}active{% endif %}" 
+                           href="{{ url_for('products') }}" aria-current="{% if request.path == url_for('products') %}page{% endif %}">
+                            <i class="fas fa-shopping-bag" aria-hidden="true"></i>
+                            <span>Products</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="d-flex">
+                    <a href="{{ url_for('view_cart') }}" class="btn btn-outline-light me-2" aria-label="Shopping cart">
+                        <i class="fas fa-shopping-cart" aria-hidden="true"></i>
+                        <span class="ms-1">Cart</span>
+                        {% if session.cart|length > 0 %}
+                            <span class="badge bg-primary">{{ session.cart|length }}</span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main content container -->
+    <main id="main-content" class="container my-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="row">
+                    <div class="col-12">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Page content will be inserted here -->
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="py-4 bg-dark mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h2 class="h5">Accessible Shop</h2>
+                    <p>An e-commerce website optimized for visually impaired users.</p>
+                </div>
+                <div class="col-md-3">
+                    <h3 class="h6">Quick Links</h3>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('index') }}" class="text-light">Home</a></li>
+                        <li><a href="{{ url_for('products') }}" class="text-light">Products</a></li>
+                        <li><a href="{{ url_for('view_cart') }}" class="text-light">Cart</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h3 class="h6">Help</h3>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-light">Accessibility Statement</a></li>
+                        <li><a href="#" class="text-light">Keyboard Shortcuts</a></li>
+                        <li><a href="#" class="text-light">Voice Commands</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-3 border-secondary">
+            <p class="text-center text-muted">
+                <small>© 2023 Accessible Shop. All rights reserved.</small>
+            </p>
+        </div>
+    </footer>
+    
+    <!-- Accessibility Controls Panel -->
+    <button id="accessibility-toggle" aria-label="Toggle accessibility options">
+        <i class="fas fa-universal-access" aria-hidden="true"></i>
+    </button>
+    
+    <div id="accessibility-panel" class="py-3" aria-labelledby="accessibility-heading">
+        <h2 id="accessibility-heading" class="h5 mb-3">Accessibility Options</h2>
+        
+        <div class="mb-3">
+            <h3 class="h6">Text Size</h3>
+            <div class="btn-group w-100" role="group" aria-label="Text size options">
+                <button class="btn btn-outline-secondary text-size-control" data-size="small">Small</button>
+                <button class="btn btn-outline-secondary text-size-control" data-size="medium">Medium</button>
+                <button class="btn btn-outline-secondary text-size-control" data-size="large">Large</button>
+                <button class="btn btn-outline-secondary text-size-control" data-size="x-large">X-Large</button>
+            </div>
+        </div>
+        
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" role="switch" id="contrast-toggle">
+            <label class="form-check-label" for="contrast-toggle">High Contrast Mode</label>
+        </div>
+        
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" role="switch" id="voice-commands-toggle">
+            <label class="form-check-label" for="voice-commands-toggle">Voice Commands</label>
+        </div>
+        
+        <h3 class="h6">Keyboard Shortcuts</h3>
+        <ul class="list-group small mb-3">
+            <li class="list-group-item bg-dark">Alt+1: Home Page</li>
+            <li class="list-group-item bg-dark">Alt+2: Products Page</li>
+            <li class="list-group-item bg-dark">Alt+3: Shopping Cart</li>
+            <li class="list-group-item bg-dark">Alt+A: Accessibility Panel</li>
+            <li class="list-group-item bg-dark">Alt+H: Toggle High Contrast</li>
+            <li class="list-group-item bg-dark">Alt+T: Cycle Text Size</li>
+            <li class="list-group-item bg-dark">Alt+V: Voice Commands</li>
+            <li class="list-group-item bg-dark">Alt+S: Focus Search</li>
+        </ul>
+        
+        <h3 class="h6">Voice Commands</h3>
+        <ul class="list-group small mb-3">
+            <li class="list-group-item bg-dark">"Search for [product]"</li>
+            <li class="list-group-item bg-dark">"Show me [category]"</li>
+            <li class="list-group-item bg-dark">"Add [product] to cart"</li>
+            <li class="list-group-item bg-dark">"Go to [page name]"</li>
+            <li class="list-group-item bg-dark">"Increase/decrease text size"</li>
+            <li class="list-group-item bg-dark">"Enable/disable high contrast"</li>
+            <li class="list-group-item bg-dark">"Read this page"</li>
+        </ul>
+    </div>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom scripts -->
+    <script src="{{ url_for('static', filename='js/accessibility.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/voice_control.js') }}"></script>
+    
+    <!-- Initialize accessibility settings from backend -->
+    <script>
+        window.accessibilitySettings = {{ accessibility|tojson }};
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

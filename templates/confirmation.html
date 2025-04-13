@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+
+{% block title %}Order Confirmation - Accessible Shop{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <div class="card bg-dark shadow-sm mb-4">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-check-circle text-success fa-5x mb-3" aria-hidden="true"></i>
+                <h1 class="mb-3">Thank You for Your Order!</h1>
+                <p class="fs-5">Your order #{{ order.id }} has been successfully placed.</p>
+                <p>A confirmation email has been sent to <strong>{{ order.user.email }}</strong>.</p>
+            </div>
+        </div>
+        
+        <div class="card bg-dark shadow-sm mb-4">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Order Details</h2>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h3 class="h6">Order Information</h3>
+                        <p>
+                            <strong>Order Number:</strong> #{{ order.id }}<br>
+                            <strong>Order Date:</strong> {{ order.order_date.strftime('%B %d, %Y') }}<br>
+                            <strong>Order Status:</strong> {{ order.status }}<br>
+                            <strong>Total Amount:</strong> {{ "$%.2f"|format(order.total_amount) }}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h3 class="h6">Shipping Address</h3>
+                        <p>{{ order.shipping_address }}</p>
+                    </div>
+                </div>
+                
+                <h3 class="h6 mb-3">Order Items</h3>
+                <div class="table-responsive">
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                                <th scope="col">Product</th>
+                                <th scope="col" class="text-center">Quantity</th>
+                                <th scope="col" class="text-end">Price</th>
+                                <th scope="col" class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items %}
+                            <tr>
+                                <td>{{ item.product_name }}</td>
+                                <td class="text-center">{{ item.quantity }}</td>
+                                <td class="text-end">{{ "$%.2f"|format(item.price) }}</td>
+                                <td class="text-end">{{ "$%.2f"|format(item.price * item.quantity) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th scope="row" colspan="3" class="text-end">Total:</th>
+                                <td class="text-end">{{ "$%.2f"|format(order.total_amount) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                <i class="fas fa-home me-2" aria-hidden="true"></i>
+                Return to Home
+            </a>
+            <a href="{{ url_for('products') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-shopping-bag me-2" aria-hidden="true"></i>
+                Continue Shopping
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Audio guidance for confirmation page -->
+<div id="confirmation-guidance" class="sr-only" aria-hidden="true">
+    Thank you for your order! Your order number {{ order.id }} has been successfully placed.
+    A confirmation email has been sent to your email address.
+    Your order total is {{ "$%.2f"|format(order.total_amount) }} for {{ order.items|length }} items.
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Read confirmation guidance when page loads
+        setTimeout(function() {
+            const guidance = document.getElementById('confirmation-guidance');
+            if (guidance) {
+                announceToScreenReader(guidance.textContent.trim());
+            }
+        }, 1000);
+    });
+</script>
+{% endblock %}

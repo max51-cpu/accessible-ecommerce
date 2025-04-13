@@ -1,0 +1,139 @@
+{% extends "layout.html" %}
+
+{% block title %}Shopping Cart - Accessible Shop{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <h1 class="mb-4">Shopping Cart</h1>
+        
+        {% if cart_items %}
+            <div class="card bg-dark shadow-sm mb-4">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Your Items</h2>
+                </div>
+                <div class="list-group list-group-flush" aria-label="Cart items">
+                    {% for item in cart_items %}
+                    <div class="list-group-item bg-dark cart-item" aria-labelledby="cart-item-{{ loop.index }}">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h3 id="cart-item-{{ loop.index }}" class="cart-item-name h6 mb-1">{{ item.product.name }}</h3>
+                                <div class="text-muted small">{{ item.product.description|truncate(100) }}</div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <div class="cart-item-price">
+                                    <span aria-label="Price per item: {{ "$%.2f"|format(item.product.price) }}">
+                                        {{ "$%.2f"|format(item.product.price) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <form action="{{ url_for('update_cart') }}" method="post" class="quantity-form">
+                                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
+                                    <div class="input-group input-group-sm">
+                                        <label class="input-group-text" for="quantity-{{ item.product.id }}">Qty</label>
+                                        <input type="number" class="form-control" name="quantity" 
+                                               id="quantity-{{ item.product.id }}" 
+                                               value="{{ item.quantity }}" min="1" max="10"
+                                               aria-label="Quantity for {{ item.product.name }}">
+                                        <button class="btn btn-outline-secondary" type="submit" 
+                                                aria-label="Update quantity for {{ item.product.name }}">
+                                            <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-6 col-md-1 text-end">
+                                <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" 
+                                   class="btn btn-sm btn-outline-danger" 
+                                   aria-label="Remove {{ item.product.name }} from cart">
+                                    <i class="fas fa-trash" aria-hidden="true"></i>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-1 text-end">
+                                <div class="cart-item-subtotal">
+                                    <span aria-label="Subtotal: {{ "$%.2f"|format(item.subtotal) }}">
+                                        {{ "$%.2f"|format(item.subtotal) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center cart-total">
+                        <span>Total:</span>
+                        <span aria-label="Total amount: {{ "$%.2f"|format(total) }}">
+                            {{ "$%.2f"|format(total) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('products') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>
+                    Continue Shopping
+                </a>
+                <a href="{{ url_for('checkout') }}" class="btn btn-success">
+                    <i class="fas fa-credit-card me-2" aria-hidden="true"></i>
+                    Proceed to Checkout
+                </a>
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <h2 class="h5">Your cart is empty</h2>
+                <p>You haven't added any products to your cart yet.</p>
+                <a href="{{ url_for('products') }}" class="btn btn-primary mt-3">
+                    <i class="fas fa-shopping-bag me-2" aria-hidden="true"></i>
+                    Browse Products
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Audio guidance for cart page -->
+<div id="cart-guidance" class="sr-only" aria-hidden="true">
+    {% if cart_items %}
+        You have {{ cart_items|length }} items in your cart.
+        The total amount is {{ "$%.2f"|format(total) }}.
+        You can update quantities or remove items. When ready, click the "Proceed to Checkout" button.
+    {% else %}
+        Your shopping cart is currently empty. Use the "Browse Products" button to find items to add to your cart.
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Read cart guidance when page loads
+        setTimeout(function() {
+            const guidance = document.getElementById('cart-guidance');
+            if (guidance) {
+                announceToScreenReader(guidance.textContent.trim());
+            }
+        }, 1000);
+        
+        // Make quantity fields accessible
+        document.querySelectorAll('.quantity-form').forEach(form => {
+            const input = form.querySelector('input[type="number"]');
+            const updateBtn = form.querySelector('button[type="submit"]');
+            
+            if (input && updateBtn) {
+                // When input changes, provide feedback
+                input.addEventListener('change', function() {
+                    announceToScreenReader(`Quantity updated to ${this.value}`);
+                });
+                
+                // When form is submitted
+                form.addEventListener('submit', function(e) {
+                    announceToScreenReader(`Updating quantity to ${input.value}`);
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

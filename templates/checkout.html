@@ -1,0 +1,220 @@
+{% extends "layout.html" %}
+
+{% block title %}Checkout - Accessible Shop{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <h1 class="mb-4">Checkout</h1>
+        
+        {% if cart_items %}
+            <div class="row">
+                <!-- Order summary -->
+                <div class="col-md-4">
+                    <div class="card bg-dark shadow-sm mb-4">
+                        <div class="card-header">
+                            <h2 class="h5 mb-0">Order Summary</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Items ({{ cart_items|length }}):</span>
+                                <span>{{ "$%.2f"|format(total) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Shipping:</span>
+                                <span>$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Tax:</span>
+                                <span>$0.00</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold cart-total">
+                                <span>Total:</span>
+                                <span aria-label="Total amount: {{ "$%.2f"|format(total) }}">
+                                    {{ "$%.2f"|format(total) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-dark shadow-sm mb-4">
+                        <div class="card-header">
+                            <h2 class="h5 mb-0">Order Items</h2>
+                        </div>
+                        <div class="list-group list-group-flush" aria-label="Order items">
+                            {% for item in cart_items %}
+                            <div class="list-group-item bg-dark">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h3 class="h6 mb-0">{{ item.product.name }}</h3>
+                                        <small class="text-muted">Qty: {{ item.quantity }}</small>
+                                    </div>
+                                    <span>{{ "$%.2f"|format(item.subtotal) }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Checkout form -->
+                <div class="col-md-8">
+                    <div class="card bg-dark shadow-sm mb-4">
+                        <div class="card-header">
+                            <h2 class="h5 mb-0">Shipping Information</h2>
+                        </div>
+                        <div class="card-body">
+                            <form id="checkout-form" action="{{ url_for('process_order') }}" method="post">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" required 
+                                           aria-describedby="name-help">
+                                    <div id="name-help" class="form-text">
+                                        Enter your full name as it appears on your ID
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="email" name="email" required
+                                           aria-describedby="email-help">
+                                    <div id="email-help" class="form-text">
+                                        We'll send your receipt to this email
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="address" class="form-label">Shipping Address</label>
+                                    <textarea class="form-control" id="address" name="address" rows="3" required
+                                              aria-describedby="address-help"></textarea>
+                                    <div id="address-help" class="form-text">
+                                        Enter your complete shipping address including street, city, state and zip code
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="voice-guidance" checked>
+                                    <label class="form-check-label" for="voice-guidance">
+                                        Enable voice guidance during checkout
+                                    </label>
+                                </div>
+                                
+                                <hr class="my-4">
+                                
+                                <h3 class="h5 mb-3">Payment Information</h3>
+                                <p class="text-info">
+                                    <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
+                                    This is a demo checkout. No real payment will be processed.
+                                </p>
+                                
+                                <div class="d-grid gap-2 d-md-flex mt-4">
+                                    <a href="{{ url_for('view_cart') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>
+                                        Back to Cart
+                                    </a>
+                                    <button type="submit" class="btn btn-success ms-auto">
+                                        <i class="fas fa-check-circle me-2" aria-hidden="true"></i>
+                                        Place Order
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <h2 class="h5">Your cart is empty</h2>
+                <p>You need to add products to your cart before checking out.</p>
+                <a href="{{ url_for('products') }}" class="btn btn-primary mt-3">
+                    <i class="fas fa-shopping-bag me-2" aria-hidden="true"></i>
+                    Browse Products
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Audio guidance for checkout page -->
+<div id="checkout-guidance" class="sr-only" aria-hidden="true">
+    {% if cart_items %}
+        You are on the checkout page. Please fill out the shipping information form.
+        Your total order amount is {{ "$%.2f"|format(total) }} for {{ cart_items|length }} items.
+        Tab through the form fields to enter your information, then place your order.
+    {% else %}
+        Your cart is empty. You need to add products before checking out.
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Read checkout guidance when page loads
+        setTimeout(function() {
+            const guidance = document.getElementById('checkout-guidance');
+            if (guidance) {
+                announceToScreenReader(guidance.textContent.trim());
+            }
+        }, 1000);
+        
+        // Voice guidance during form filling
+        const voiceGuidance = document.getElementById('voice-guidance');
+        const checkoutForm = document.getElementById('checkout-form');
+        
+        if (checkoutForm && voiceGuidance) {
+            const formFields = checkoutForm.querySelectorAll('input, textarea');
+            
+            formFields.forEach(field => {
+                field.addEventListener('focus', function() {
+                    if (voiceGuidance.checked) {
+                        // Get field label
+                        const labelElement = document.querySelector(`label[for="${this.id}"]`);
+                        const label = labelElement ? labelElement.textContent : this.name;
+                        
+                        // Get help text
+                        const helpElement = document.getElementById(`${this.id}-help`);
+                        const helpText = helpElement ? helpElement.textContent : '';
+                        
+                        // Announce guidance
+                        announceToScreenReader(`${label}. ${helpText}`);
+                    }
+                });
+            });
+            
+            // Form submission
+            checkoutForm.addEventListener('submit', function(e) {
+                // Validate form
+                let isValid = true;
+                let firstInvalidField = null;
+                
+                formFields.forEach(field => {
+                    if (field.required && !field.value.trim()) {
+                        isValid = false;
+                        if (!firstInvalidField) {
+                            firstInvalidField = field;
+                        }
+                    }
+                });
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    
+                    if (firstInvalidField) {
+                        firstInvalidField.focus();
+                        const labelElement = document.querySelector(`label[for="${firstInvalidField.id}"]`);
+                        const fieldName = labelElement ? labelElement.textContent : firstInvalidField.name;
+                        
+                        announceToScreenReader(`Please fill out the ${fieldName} field`);
+                    } else {
+                        announceToScreenReader('Please fill out all required fields');
+                    }
+                } else if (voiceGuidance.checked) {
+                    announceToScreenReader('Processing your order. Please wait...');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

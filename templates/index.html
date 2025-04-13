@@ -1,0 +1,157 @@
+{% extends "layout.html" %}
+
+{% block title %}Accessible E-commerce Shop - Home{% endblock %}
+
+{% block content %}
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="p-5 mb-4 bg-dark rounded shadow-sm" aria-labelledby="welcome-heading">
+            <div class="container py-3">
+                <h1 id="welcome-heading" class="display-5 fw-bold">Welcome to Accessible Shop</h1>
+                <p class="fs-4">A shopping experience designed for everyone, with enhanced accessibility features for visually impaired users.</p>
+                <div class="my-4">
+                    <a href="{{ url_for('products') }}" class="btn btn-primary btn-lg fs-5" aria-describedby="browse-products-desc">
+                        <i class="fas fa-shopping-bag me-2" aria-hidden="true"></i>Browse Products
+                    </a>
+                    <span id="browse-products-desc" class="sr-only">Browse our accessible product catalog</span>
+                    
+                    <button class="btn btn-info btn-lg fs-5 ms-2" id="intro-voice-command" aria-label="Start voice navigation">
+                        <i class="fas fa-microphone me-2" aria-hidden="true"></i>Voice Navigation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="border-bottom pb-2 mb-4">Featured Products</h2>
+    </div>
+</div>
+
+<div class="row" aria-label="Featured products">
+    {% for product in latest_products %}
+    <div class="col-md-6 col-lg-3 mb-4">
+        <article class="product-card h-100 shadow-sm" aria-labelledby="product-name-{{ product.id }}">
+            <h3 id="product-name-{{ product.id }}" class="product-name h5">{{ product.name }}</h3>
+            <p class="product-description">{{ product.description }}</p>
+            <p class="product-price">
+                <span aria-label="Price">{{ "$%.2f"|format(product.price) }}</span>
+            </p>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-outline-primary">
+                    View Details
+                </a>
+                <form action="{{ url_for('add_to_cart') }}" method="post">
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <input type="hidden" name="quantity" value="1">
+                    <button type="submit" class="btn btn-primary w-100 add-to-cart-button">
+                        <i class="fas fa-cart-plus me-2" aria-hidden="true"></i>Add to Cart
+                    </button>
+                </form>
+            </div>
+        </article>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <h2 class="border-bottom pb-2 mb-4">Shop by Category</h2>
+    </div>
+</div>
+
+<div class="row mb-4">
+    {% for category in categories %}
+    <div class="col-md-6 col-lg-3 mb-3">
+        <a href="{{ url_for('products', category=category.id) }}" class="d-block text-decoration-none">
+            <div class="card h-100 bg-dark hover-lift">
+                <div class="card-body">
+                    <h3 class="h5">{{ category.name }}</h3>
+                    <p class="card-text text-muted">{{ category.description }}</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm bg-dark h-100">
+            <div class="card-body">
+                <h2 class="card-title h4">Accessibility Features</h2>
+                <ul>
+                    <li>Screen reader compatibility</li>
+                    <li>Voice commands for navigation</li>
+                    <li>High contrast mode</li>
+                    <li>Adjustable text sizes</li>
+                    <li>Keyboard shortcuts</li>
+                </ul>
+                <button id="accessibility-features-btn" class="btn btn-outline-info mt-3">
+                    Open Accessibility Panel
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm bg-dark h-100">
+            <div class="card-body">
+                <h2 class="card-title h4">Voice Commands</h2>
+                <p>You can navigate our site using voice commands. Try saying:</p>
+                <ul>
+                    <li>"Search for electronics"</li>
+                    <li>"Show me clothing"</li>
+                    <li>"Go to cart"</li>
+                    <li>"Add [product name] to cart"</li>
+                </ul>
+                <button id="voice-demo-btn" class="btn btn-outline-info mt-3">
+                    <i class="fas fa-microphone me-2" aria-hidden="true"></i>Try Voice Commands
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Accessibility Features button
+        const accessFeaturesBtn = document.getElementById('accessibility-features-btn');
+        if (accessFeaturesBtn) {
+            accessFeaturesBtn.addEventListener('click', function() {
+                const accessibilityPanel = document.getElementById('accessibility-panel');
+                accessibilityPanel.classList.add('show');
+                announceToScreenReader('Accessibility panel opened');
+            });
+        }
+        
+        // Voice Demo button
+        const voiceDemoBtn = document.getElementById('voice-demo-btn');
+        if (voiceDemoBtn) {
+            voiceDemoBtn.addEventListener('click', function() {
+                if (window.startVoiceRecognition) {
+                    window.startVoiceRecognition();
+                } else {
+                    announceToScreenReader('Voice commands are not available in your browser');
+                }
+            });
+        }
+        
+        // Intro Voice Command button
+        const introVoiceBtn = document.getElementById('intro-voice-command');
+        if (introVoiceBtn) {
+            introVoiceBtn.addEventListener('click', function() {
+                if (window.startVoiceRecognition) {
+                    window.startVoiceRecognition();
+                } else {
+                    announceToScreenReader('Voice commands are not available in your browser');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

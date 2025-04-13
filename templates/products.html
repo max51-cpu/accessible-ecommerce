@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {% if current_category %}
+        {{ categories|selectattr('id', 'equalto', current_category)|map(attribute='name')|join }} - Products
+    {% elif search_query %}
+        Search Results for "{{ search_query }}" - Products
+    {% else %}
+        All Products - Accessible Shop
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Categories sidebar -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-dark category-nav" aria-labelledby="category-heading">
+            <div class="card-header">
+                <h2 id="category-heading" class="h5 mb-0">Categories</h2>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('products') }}" class="list-group-item list-group-item-action bg-dark
+                    {% if not current_category %}active{% endif %}" 
+                    aria-current="{% if not current_category %}true{% endif %}">
+                    All Products
+                </a>
+                
+                {% for category in categories %}
+                <a href="{{ url_for('products', category=category.id) }}" 
+                   class="list-group-item list-group-item-action bg-dark category-link
+                   {% if current_category == category.id %}active{% endif %}"
+                   aria-current="{% if current_category == category.id %}true{% endif %}"
+                   data-category-id="{{ category.id }}">
+                    {{ category.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Products listing -->
+    <div class="col-md-9">
+        <!-- Search and heading -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                {% if current_category %}
+                    {{ categories|selectattr('id', 'equalto', current_category)|map(attribute='name')|first }} Products
+                {% elif search_query %}
+                    Search Results for "{{ search_query }}"
+                {% else %}
+                    All Products
+                {% endif %}
+            </h1>
+        </div>
+        
+        <!-- Search form -->
+        <form class="search-form mb-4" action="{{ url_for('products') }}" method="get" role="search">
+            {% if current_category %}
+                <input type="hidden" name="category" value="{{ current_category }}">
+            {% endif %}
+            
+            <div class="input-group">
+                <input type="search" class="form-control" placeholder="Search products..." 
+                       aria-label="Search products" name="search" value="{{ search_query }}">
+                <button class="btn btn-primary" type="submit" aria-label="Submit search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                </button>
+            </div>
+        </form>
+        
+        <!-- Product list -->
+        {% if products %}
+            <div class="row" role="list" aria-label="Product list">
+                {% for product in products %}
+                <div class="col-md-6 col-lg-4 mb-4" role="listitem">
+                    <article class="product-card h-100 shadow-sm" aria-labelledby="product-{{ product.id }}-name">
+                        <h2 id="product-{{ product.id }}-name" class="product-name h5">{{ product.name }}</h2>
+                        <p class="product-description">{{ product.description }}</p>
+                        <p class="product-price" aria-label="Price: {{ "$%.2f"|format(product.price) }}">
+                            {{ "$%.2f"|format(product.price) }}
+                        </p>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('product_detail', product_id=product.id) }}" 
+                               class="btn btn-outline-primary"
+                               aria-label="View details of {{ product.name }}">
+                                View Details
+                            </a>
+                            <form action="{{ url_for('add_to_cart') }}" method="post">
+                                <input type="hidden" name="product_id" value="{{ product.id }}">
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn btn-primary w-100 add-to-cart-button"
+                                        aria-label="Add {{ product.name }} to cart">
+                                    <i class="fas fa-cart-plus me-2" aria-hidden="true"></i>Add to Cart
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                <h2 class="h5">No products found</h2>
+                <p>
+                    {% if search_query %}
+                        We couldn't find any products matching "{{ search_query }}".
+                    {% elif current_category %}
+                        There are currently no products in this category.
+                    {% else %}
+                        There are no products available at this time.
+                    {% endif %}
+                </p>
+                <p>Try a different search or category, or check back later.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
