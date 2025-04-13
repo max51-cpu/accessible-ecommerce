@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block title %}Payment Successful - Accessible Shop{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-dark shadow-sm my-5">
+                <div class="card-header bg-success text-white">
+                    <h1 class="h4 mb-0">
+                        <i class="fas fa-check-circle me-2" aria-hidden="true"></i>
+                        Payment Successful
+                    </h1>
+                </div>
+                <div class="card-body text-center">
+                    <div class="my-4">
+                        <i class="fas fa-check-circle text-success fa-5x" aria-hidden="true"></i>
+                    </div>
+                    
+                    <h2 class="h5 mb-3">Thank you for your purchase!</h2>
+                    <p>Your payment has been processed successfully.</p>
+                    <p>We're processing your order now and will send you a confirmation email shortly.</p>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-home me-2" aria-hidden="true"></i>
+                            Return to Home
+                        </a>
+                        <a href="{{ url_for('products') }}" class="btn btn-primary">
+                            <i class="fas fa-shopping-bag me-2" aria-hidden="true"></i>
+                            Continue Shopping
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Announce success message to screen readers
+        setTimeout(function() {
+            announceToScreenReader("Payment successful! Thank you for your purchase. We're processing your order now.");
+        }, 1000);
+    });
+</script>
+{% endblock %}

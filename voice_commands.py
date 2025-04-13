@@ -14,6 +14,9 @@ def process_command(command_text):
     - Go to [page name]
     - Increase/decrease text size
     - Enable/disable high contrast
+    - Checkout
+    - Pay now
+    - Complete purchase
     """
     command = command_text.lower().strip()
     logging.debug(f"Processing voice command: {command}")
@@ -58,6 +61,9 @@ def process_command(command_text):
         ),
         r'go (back|forward)': lambda m: (
             'navigate', {'direction': m.group(1)}, f'Going {m.group(1)}'
+        ),
+        r'(checkout|pay now|proceed to payment|complete( my)? purchase)': lambda m: (
+            'navigate', {'location': 'checkout'}, 'Proceeding to checkout'
         )
     }
     

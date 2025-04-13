@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block title %}Payment Canceled - Accessible Shop{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-dark shadow-sm my-5">
+                <div class="card-header bg-warning">
+                    <h1 class="h4 mb-0">
+                        <i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>
+                        Payment Canceled
+                    </h1>
+                </div>
+                <div class="card-body text-center">
+                    <div class="my-4">
+                        <i class="fas fa-exclamation-circle text-warning fa-5x" aria-hidden="true"></i>
+                    </div>
+                    
+                    <h2 class="h5 mb-3">Your payment has been canceled</h2>
+                    <p>No charges have been made to your account.</p>
+                    <p>If you encountered any issues during checkout, please try again or contact our support team for assistance.</p>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                        <a href="{{ url_for('checkout') }}" class="btn btn-primary">
+                            <i class="fas fa-shopping-cart me-2" aria-hidden="true"></i>
+                            Return to Checkout
+                        </a>
+                        <a href="{{ url_for('view_cart') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-shopping-basket me-2" aria-hidden="true"></i>
+                            View Cart
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Announce cancellation message to screen readers
+        setTimeout(function() {
+            announceToScreenReader("Payment canceled. No charges have been made to your account. You can try again or contact support if you need assistance.");
+        }, 1000);
+    });
+</script>
+{% endblock %}
