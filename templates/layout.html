@@ -68,6 +68,12 @@
     
     <!-- Main content container -->
     <main id="main-content" class="container my-4">
+        <!-- Current page indicator (server-side) -->
+        <div id="current-page-indicator" class="current-page-indicator alert alert-info alert-dismissible fade show" role="status">
+            Current Page: <strong>{% block page_title %}{{ self.title() }}{% endblock %}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="row">
@@ -157,6 +163,7 @@
             <li class="list-group-item bg-dark">Alt+T: Cycle Text Size</li>
             <li class="list-group-item bg-dark">Alt+V: Voice Commands</li>
             <li class="list-group-item bg-dark">Alt+S: Focus Search</li>
+            <li class="list-group-item bg-dark">Alt+P: Toggle Page Indicator</li>
         </ul>
         
         <h3 class="h6">Voice Commands</h3>

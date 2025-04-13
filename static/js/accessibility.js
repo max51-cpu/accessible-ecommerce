@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setupKeyboardShortcuts();
     enhanceScreenReaderSupport();
     setupFormAccessibility();
+    
+    // Announce current page to screen readers
+    announceCurrentPage();
 });
 
 /**
@@ -209,6 +212,12 @@ function setupKeyboardShortcuts() {
                 announceToScreenReader('Search box focused');
             }
         }
+        
+        // Alt+P: Toggle current page indicator
+        if (e.altKey && e.key === 'p') {
+            e.preventDefault();
+            togglePageIndicator();
+        }
     });
 }
 
@@ -392,4 +401,131 @@ function setupFormAccessibility() {
             }
         });
     });
+}
+
+/**
+ * Announce the current page name to screen readers
+ */
+function announceCurrentPage() {
+    // Get the current page heading or title
+    const heading = document.querySelector('h1');
+    const pageTitle = heading ? heading.textContent.trim() : document.title;
+    
+    // Create page location announcement
+    let announcement = `You are now on: ${pageTitle}`;
+    
+    // Add breadcrumb information if available
+    const breadcrumbs = document.querySelector('.breadcrumb');
+    if (breadcrumbs) {
+        const breadcrumbItems = breadcrumbs.querySelectorAll('.breadcrumb-item');
+        if (breadcrumbItems.length > 0) {
+            announcement += ". Breadcrumb path: ";
+            breadcrumbItems.forEach((item, index) => {
+                if (index > 0) {
+                    announcement += " > ";
+                }
+                announcement += item.textContent.trim();
+            });
+        }
+    }
+    
+    // Delay the announcement slightly to ensure it happens after page load
+    setTimeout(() => {
+        announceToScreenReader(announcement);
+        
+        // Also add a visual indicator of current page
+        updateCurrentPageIndicator();
+    }, 800);
+}
+
+/**
+ * Update visual indicator of current page
+ */
+function updateCurrentPageIndicator() {
+    // Get the existing page indicator from the template
+    let pageIndicator = document.getElementById('current-page-indicator');
+    
+    // If it doesn't exist (should always exist due to server-side rendering), create it
+    if (!pageIndicator) {
+        // Create the indicator if it doesn't exist
+        pageIndicator = document.createElement('div');
+        pageIndicator.id = 'current-page-indicator';
+        pageIndicator.className = 'current-page-indicator alert alert-info alert-dismissible fade show';
+        pageIndicator.setAttribute('role', 'status');
+        
+        // Add close button 
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close';
+        closeButton.setAttribute('data-bs-dismiss', 'alert');
+        closeButton.setAttribute('aria-label', 'Close');
+        pageIndicator.appendChild(closeButton);
+        
+        // Insert at the top of the main content
+        const mainContent = document.getElementById('main-content');
+        if (mainContent && mainContent.firstChild) {
+            mainContent.insertBefore(pageIndicator, mainContent.firstChild);
+        } else {
+            document.body.appendChild(pageIndicator);
+        }
+        
+        // Get current page info
+        const heading = document.querySelector('h1');
+        const pageTitle = heading ? heading.textContent.trim() : document.title;
+        
+        // Update the content
+        const pageName = document.createElement('strong');
+        pageName.textContent = pageTitle;
+        
+        pageIndicator.innerHTML = '';
+        pageIndicator.appendChild(document.createTextNode('Current Page: '));
+        pageIndicator.appendChild(pageName);
+        
+        // Add close button again (since we cleared the innerHTML)
+        const closeButton2 = document.createElement('button');
+        closeButton2.type = 'button';
+        closeButton2.className = 'btn-close';
+        closeButton2.setAttribute('data-bs-dismiss', 'alert');
+        closeButton2.setAttribute('aria-label', 'Close');
+        pageIndicator.appendChild(closeButton2);
+    }
+    
+    // Add event listener to update screen reader when page indicator is closed
+    pageIndicator.querySelector('.btn-close').addEventListener('click', function() {
+        announceToScreenReader('Page indicator closed. You can reopen it using the Alt+P keyboard shortcut.');
+    });
+}
+
+/**
+ * Toggle the page indicator visibility
+ */
+function togglePageIndicator() {
+    const pageIndicator = document.getElementById('current-page-indicator');
+    if (!pageIndicator) {
+        // If it doesn't exist, create it
+        updateCurrentPageIndicator();
+        announceToScreenReader('Page indicator shown. Current page: ' + document.title);
+        return;
+    }
+    
+    // Check if it's already hidden by Bootstrap's alert dismissal
+    if (pageIndicator.classList.contains('show')) {
+        // It's visible, so hide it
+        pageIndicator.classList.remove('show');
+        setTimeout(() => {
+            pageIndicator.style.display = 'none';
+        }, 150);
+        announceToScreenReader('Page indicator hidden');
+    } else {
+        // It's hidden, so show it
+        pageIndicator.style.display = 'flex';
+        setTimeout(() => {
+            pageIndicator.classList.add('show');
+        }, 10);
+        
+        // Update content before showing
+        const heading = document.querySelector('h1');
+        const pageTitle = heading ? heading.textContent.trim() : document.title;
+        announceToScreenReader('Page indicator shown. Current page: ' + pageTitle);
+    }
 }
